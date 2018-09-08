@@ -7772,7 +7772,7 @@ var _user$project$Generation$filterPos = F2(
 	function (positions, _p0) {
 		var _p1 = _p0;
 		var isValidPos = function (pos) {
-			return (_elm_lang$core$Native_Utils.cmp(pos.row, 0) > -1) && ((_elm_lang$core$Native_Utils.cmp(pos.row, _p1.height) < 0) && ((_elm_lang$core$Native_Utils.cmp(pos.col, 0) > -1) && (_elm_lang$core$Native_Utils.cmp(pos.col, _p1.width) < 0)));
+			return (_elm_lang$core$Native_Utils.cmp(pos.row, 0) > -1) && ((_elm_lang$core$Native_Utils.cmp(pos.row, _p1._0.height) < 0) && ((_elm_lang$core$Native_Utils.cmp(pos.col, 0) > -1) && (_elm_lang$core$Native_Utils.cmp(pos.col, _p1._0.width) < 0)));
 		};
 		return A2(_elm_lang$core$List$filter, isValidPos, positions);
 	});
@@ -7830,12 +7830,12 @@ var _user$project$Generation$possibleCellNeighbors = function (pos) {
 var _user$project$Generation$mapRowCells = F3(
 	function (row, f, _p4) {
 		var _p5 = _p4;
-		var _p6 = _p5.width;
+		var _p6 = _p5._0.width;
 		return A2(
 			_elm_lang$core$List$map,
 			f,
 			_elm_lang$core$Array$toList(
-				A3(_elm_lang$core$Array$slice, row * _p6, _p6, _p5.grid)));
+				A3(_elm_lang$core$Array$slice, row * _p6, _p6, _p5._0.grid)));
 	});
 var _user$project$Generation$mapRows = F2(
 	function (f, _p7) {
@@ -7843,79 +7843,63 @@ var _user$project$Generation$mapRows = F2(
 		return A2(
 			_elm_lang$core$List$map,
 			f,
-			A2(_elm_lang$core$List$range, 0, _p8.height - 1));
+			A2(_elm_lang$core$List$range, 0, _p8._0.height - 1));
 	});
 var _user$project$Generation$posFromIndex = F2(
 	function (_p9, index) {
 		var _p10 = _p9;
-		var _p11 = _p10.width;
+		var _p11 = _p10._0.width;
 		return {
 			row: (index / _p11) | 0,
 			col: A2(_elm_lang$core$Basics_ops['%'], index, _p11)
 		};
 	});
-var _user$project$Generation$map = F2(
-	function (fn, _p12) {
-		var _p13 = _p12;
-		var _p15 = _p13;
-		var indexToPos = _user$project$Generation$posFromIndex(_p15);
-		var newGrid = A2(
-			_elm_lang$core$Array$indexedMap,
-			function (_p14) {
-				return fn(
-					indexToPos(_p14));
-			},
-			_p13.grid);
-		return _elm_lang$core$Native_Utils.update(
-			_p15,
-			{grid: newGrid});
-	});
 var _user$project$Generation$indexFromRowCol = F2(
-	function (_p17, _p16) {
-		var _p18 = _p17;
-		var _p19 = _p16;
-		return (_p19.row * _p18.width) + _p19.col;
-	});
-var _user$project$Generation$gridSet = F3(
-	function (pos, _p20, state) {
-		var _p21 = _p20;
-		var _p22 = _p21;
-		var index = A2(_user$project$Generation$indexFromRowCol, _p22, pos);
-		var newGrid = A3(_elm_lang$core$Array$set, index, state, _p21.grid);
-		return _elm_lang$core$Native_Utils.update(
-			_p22,
-			{grid: newGrid});
+	function (_p13, _p12) {
+		var _p14 = _p13;
+		var _p15 = _p12;
+		return (_p15.row * _p14._0.width) + _p15.col;
 	});
 var _user$project$Generation$Pos = F2(
 	function (a, b) {
 		return {row: a, col: b};
 	});
-var _user$project$Generation$Gen = F3(
-	function (a, b, c) {
-		return {grid: a, width: b, height: c};
-	});
 var _user$project$Generation$Alive = {ctor: 'Alive'};
 var _user$project$Generation$Dead = {ctor: 'Dead'};
-var _user$project$Generation$init = F2(
-	function (width, height) {
-		return {
-			grid: A2(_elm_lang$core$Array$repeat, width * height, _user$project$Generation$Dead),
-			width: width,
-			height: height
-		};
-	});
 var _user$project$Generation$gridGet = F2(
-	function (pos, _p23) {
-		var _p24 = _p23;
-		var index = A2(_user$project$Generation$indexFromRowCol, _p24, pos);
+	function (pos, _p16) {
+		var _p17 = _p16;
+		var index = A2(_user$project$Generation$indexFromRowCol, _p17, pos);
 		return A2(
 			_elm_lang$core$Maybe$withDefault,
 			_user$project$Generation$Dead,
-			A2(_elm_lang$core$Array$get, index, _p24.grid));
+			A2(_elm_lang$core$Array$get, index, _p17._0.grid));
 	});
 var _user$project$Generation$flipCellState = function (state) {
 	return _elm_lang$core$Native_Utils.eq(state, _user$project$Generation$Dead) ? _user$project$Generation$Alive : _user$project$Generation$Dead;
 };
+var _user$project$Generation$Gen = function (a) {
+	return {ctor: 'Gen', _0: a};
+};
+var _user$project$Generation$init = F2(
+	function (width, height) {
+		return _user$project$Generation$Gen(
+			{
+				grid: A2(_elm_lang$core$Array$repeat, width * height, _user$project$Generation$Dead),
+				width: width,
+				height: height
+			});
+	});
+var _user$project$Generation$gridSet = F3(
+	function (pos, _p18, state) {
+		var _p19 = _p18;
+		var index = A2(_user$project$Generation$indexFromRowCol, _p19, pos);
+		var newGrid = A3(_elm_lang$core$Array$set, index, state, _p19._0.grid);
+		return _user$project$Generation$Gen(
+			_elm_lang$core$Native_Utils.update(
+				_p19._0,
+				{grid: newGrid}));
+	});
 var _user$project$Generation$toggleCellState = F2(
 	function (pos, gen) {
 		return A3(
@@ -7924,6 +7908,22 @@ var _user$project$Generation$toggleCellState = F2(
 			gen,
 			_user$project$Generation$flipCellState(
 				A2(_user$project$Generation$gridGet, pos, gen)));
+	});
+var _user$project$Generation$map = F2(
+	function (fn, _p20) {
+		var _p21 = _p20;
+		var indexToPos = _user$project$Generation$posFromIndex(_p21);
+		var newGrid = A2(
+			_elm_lang$core$Array$indexedMap,
+			function (_p22) {
+				return fn(
+					indexToPos(_p22));
+			},
+			_p21._0.grid);
+		return _user$project$Generation$Gen(
+			_elm_lang$core$Native_Utils.update(
+				_p21._0,
+				{grid: newGrid}));
 	});
 var _user$project$Main$main = _elm_lang$virtual_dom$Native_VirtualDom.staticProgram(
 	_elm_lang$html$Html$text('Hello World'));
