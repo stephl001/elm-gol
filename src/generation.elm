@@ -10,11 +10,9 @@ type alias Height = Int
 type alias Width = Int
 type alias Row = Int
 type alias Column = Int
-
-type alias CellInfo =
+type alias Pos = 
     { row: Row
-    , col: Column
-    , state: CellState
+    , col: Column 
     }
 
 type alias Gen =
@@ -30,38 +28,39 @@ init width height =
     , height=height
     }
 
-indexFromRowCol: Gen -> Row -> Column -> Int
-indexFromRowCol {width} row col =
+indexFromRowCol: Gen -> Pos -> Int
+indexFromRowCol {width} {row,col} =
     row*width + col
 
-gridGet: Gen -> Row -> Column -> CellInfo
-gridGet ({grid} as gen) row col =
-    let
-        index = indexFromRowCol gen row col
-    in
-        grid |> Array.get index |> Maybe.withDefault Dead |> CellInfo row col
+posFromIndex: Gen -> Int -> Pos
+posFromIndex {width} index =
+    {row=index//width, col=index % width}
 
-gridSet: Gen -> CellInfo -> Gen
-gridSet ({grid} as gen) {row,col,state} =
+gridGet: Pos -> Gen -> CellState
+gridGet pos ({grid} as gen) =
     let
-        index = indexFromRowCol gen row col
+        index = indexFromRowCol gen pos
+    in
+        grid |> Array.get index |> Maybe.withDefault Dead
+
+gridSet: Pos -> Gen -> CellState -> Gen
+gridSet pos ({grid} as gen) state =
+    let
+        index = indexFromRowCol gen pos
         newGrid = grid |> Array.set index state
     in
         {gen | grid=newGrid}
     
-toggleCellState: Gen -> Row -> Column -> Gen
-toggleCellState gen row col =
-    gridGet gen row col
+toggleCellState: Pos -> Gen -> Gen
+toggleCellState pos gen =
+    gridGet pos gen
     |> flipCellState
-    |> gridSet gen 
+    |> gridSet pos gen
 
-flipCellState: CellInfo -> CellInfo
-flipCellState ({row,col,state} as cellInfo) =
-    let
-        newState = if state == Dead then Alive else Dead
-    in
-        {cellInfo | state=newState}
-
+flipCellState: CellState -> CellState
+flipCellState state =
+    if state == Dead then Alive else Dead
+    
 mapRows: (Row -> a) -> Gen -> List a
 mapRows f {height} =
     List.range 0 (height-1)
@@ -73,3 +72,35 @@ mapRowCells row f {width,grid} =
     |> Array.slice (row*width) width
     |> Array.toList
     |> List.map f
+
+map: (Pos -> CellState -> CellState) -> Gen -> Gen
+map fn ({grid} as gen) =
+    let
+        indexToPos = posFromIndex gen
+        newGrid = grid |> Array.indexedMap (indexToPos>>fn)
+    in    
+        {gen | grid = newGrid}
+
+cartesian : List a -> List b -> List (a,b)
+cartesian xs ys =
+  List.concatMap
+    ( \x -> List.map ( \y -> (x, y) ) ys )
+    xs
+
+possibleCellNeighbors: Pos -> List Pos
+possibleCellNeighbors pos =
+    let 
+        deltaPos = cartesian [-1,0,1] [-1,0,1]
+    in
+        deltaPos 
+        |> List.map (\(deltaX,deltaY) -> {row=pos.row+deltaY,col=pos.col+deltaX})
+
+filterPos: List Pos -> Gen -> List Pos
+filterPos positions {width,height} =
+    let
+        isValidPos: Pos -> Bool
+        isValidPos pos =
+            pos.row >= 0 && pos.row < height && pos.col >=0 && pos.col < width
+    in
+        positions |> List.filter isValidPos
+    
