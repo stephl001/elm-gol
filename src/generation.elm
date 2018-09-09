@@ -1,4 +1,4 @@
-module Generation exposing (Gen,init)
+module Generation exposing (Gen,init,getDimensions,toggleCellState,gridGet,gridSet,mapRows,mapRowCells)
 
 import Array exposing (Array)
 
@@ -29,6 +29,9 @@ init width height =
     , height = height
     } |> Gen
 
+getDimensions: Gen -> (Width,Height)
+getDimensions (Gen {width,height}) = (width,height)
+
 indexFromRowCol: Gen -> Pos -> Int
 indexFromRowCol (Gen {width}) {row,col} =
     row*width + col
@@ -37,26 +40,26 @@ posFromIndex: Gen -> Int -> Pos
 posFromIndex (Gen {width}) index =
     {row=index//width, col=index % width}
 
-gridGet: Pos -> Gen -> CellState
-gridGet pos (Gen {grid} as gen) =
+gridGet: Gen -> Pos -> CellState
+gridGet (Gen {grid} as gen) pos =
     let
         index = indexFromRowCol gen pos
     in
         grid |> Array.get index |> Maybe.withDefault Dead
 
-gridSet: Pos -> Gen -> CellState -> Gen
-gridSet pos (Gen ({grid} as innerGen) as gen) state =
+gridSet: Gen -> Pos -> CellState -> Gen
+gridSet (Gen ({grid} as innerGen) as gen) pos state =
     let
         index = indexFromRowCol gen pos
         newGrid = grid |> Array.set index state
     in
         {innerGen | grid=newGrid} |> Gen
     
-toggleCellState: Pos -> Gen -> Gen
-toggleCellState pos gen =
-    gridGet pos gen
+toggleCellState: Gen -> Pos -> Gen
+toggleCellState gen pos =
+    gridGet gen pos
     |> flipCellState
-    |> gridSet pos gen
+    |> gridSet gen pos
 
 flipCellState: CellState -> CellState
 flipCellState state =
@@ -94,6 +97,7 @@ possibleCellNeighbors pos =
         deltaPos = cartesian [-1,0,1] [-1,0,1]
     in
         deltaPos 
+        |> List.filter ((/=) (0,0))
         |> List.map (\(deltaX,deltaY) -> {row=pos.row+deltaY,col=pos.col+deltaX})
 
 filterPos: List Pos -> Gen -> List Pos
@@ -104,3 +108,30 @@ filterPos positions (Gen {width,height}) =
             pos.row >= 0 && pos.row < height && pos.col >=0 && pos.col < width
     in
         positions |> List.filter isValidPos
+
+validCellNeighbors: Pos -> Gen -> List Pos
+validCellNeighbors = possibleCellNeighbors >> filterPos
+
+type alias AliveNeighbors = Int
+
+aliveNeighbors: Gen -> Pos -> AliveNeighbors
+aliveNeighbors gen pos =
+    validCellNeighbors pos gen 
+    |> List.map (gridGet gen) 
+    |> List.filter ((==) Alive) 
+    |> List.length
+
+cellAliveNeighborsInfo: Gen -> Pos -> (CellState,AliveNeighbors)
+cellAliveNeighborsInfo gen pos =
+    let
+        cellState = gridGet gen pos
+    in
+        (cellState,aliveNeighbors gen pos)
+
+stateFromNeighborsInfo: (CellState,AliveNeighbors) -> CellState
+stateFromNeighborsInfo neighborsInfo =
+    case neighborsInfo of
+        (Alive,2) -> Alive
+        (Alive,3) -> Alive
+        (Dead,3) -> Alive
+        _ -> Dead
