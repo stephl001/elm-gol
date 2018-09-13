@@ -59,7 +59,7 @@ indexFromRowCol (Gen { width }) { row, col } =
 
 posFromIndex : Gen -> Int -> Pos
 posFromIndex (Gen { width }) index =
-    { row = index // width, col = index % width }
+    { row = index // width, col = index |> modBy width }
 
 
 gridGet : Gen -> Pos -> CellState
@@ -113,18 +113,6 @@ mapRowCells row f (Gen { width, grid }) =
         |> List.map f
 
 
-map : (Pos -> CellState -> CellState) -> Gen -> Gen
-map fn ((Gen ({ grid } as innerGen)) as gen) =
-    let
-        indexToPos =
-            posFromIndex gen
-
-        newGrid =
-            grid |> Array.indexedMap (indexToPos >> fn)
-    in
-    { innerGen | grid = newGrid } |> Gen
-
-
 cartesian : List a -> List b -> List ( a, b )
 cartesian xs ys =
     List.concatMap
@@ -143,19 +131,24 @@ possibleCellNeighbors pos =
         |> List.map (\( deltaX, deltaY ) -> { row = pos.row + deltaY, col = pos.col + deltaX })
 
 
-filterPos : List Pos -> Gen -> List Pos
-filterPos positions (Gen { width, height }) =
-    let
-        isValidPos : Pos -> Bool
-        isValidPos pos =
-            pos.row >= 0 && pos.row < height && pos.col >= 0 && pos.col < width
-    in
-    positions |> List.filter isValidPos
+isValidPos : Gen -> Pos -> Bool
+isValidPos (Gen { width, height }) pos =
+    pos.row >= 0 && pos.row < height && pos.col >= 0 && pos.col < width
+
+
+filterPos : Gen -> List Pos -> List Pos
+filterPos gen =
+    List.filter (isValidPos gen)
+
+
+flip : (a -> b -> c) -> b -> a -> c
+flip f a b =
+    f b a
 
 
 validCellNeighbors : Pos -> Gen -> List Pos
 validCellNeighbors =
-    possibleCellNeighbors >> filterPos
+    possibleCellNeighbors >> flip filterPos
 
 
 type alias AliveNeighbors =
@@ -193,3 +186,18 @@ stateFromNeighborsInfo neighborsInfo =
 
         _ ->
             Dead
+
+
+calculateCellNewState : Gen -> Pos -> CellState
+calculateCellNewState gen =
+    cellAliveNeighborsInfo gen >> stateFromNeighborsInfo
+
+
+
+-- map : (Pos -> CellState) -> Gen -> Gen
+-- map f ((Gen { grid }) as gen) =
+--     let
+--         bla i _ =
+--             posFromIndex gen i
+--     in
+--     grid |> Array.indexedMap (bla >> calculateCellNewState gen)

@@ -1,0 +1,13 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "npm",
+            "script": "install",
+            "path": "elm-stuff/generated-code/elm-community/elm-test/elm-stuff/packages/elm-community/elm-test/4.2.0/tests/",
+            "problemMatcher": []
+        }
+    ]
+}
