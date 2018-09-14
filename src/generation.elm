@@ -1,6 +1,7 @@
-module Generation exposing (Gen, getDimensions, gridGet, gridSet, init, mapRowCells, mapRows, toggleCellState)
+module Generation exposing (Column, Gen, Height, Row, Width, getDimensions, init)
 
 import Array exposing (Array)
+import Array2D exposing (Array2D)
 
 
 type CellState
@@ -24,70 +25,37 @@ type alias Column =
     Int
 
 
-type alias Pos =
-    { row : Row
-    , col : Column
-    }
-
-
 type Gen
-    = Gen
-        { grid : Array CellState
-        , width : Width
-        , height : Height
-        }
+    = Gen (Array2D CellState)
 
 
-init : Width -> Height -> Gen
-init width height =
-    { grid = Array.repeat (width * height) Dead
-    , width = width
-    , height = height
-    }
-        |> Gen
+init : Height -> Width -> Gen
+init height width =
+    Array2D.repeat height width Dead |> Gen
 
 
-getDimensions : Gen -> ( Width, Height )
-getDimensions (Gen { width, height }) =
-    ( width, height )
+getDimensions : Gen -> ( Height, Width )
+getDimensions (Gen array) =
+    ( Array2D.rows array, Array2D.columns array )
 
 
-indexFromRowCol : Gen -> Pos -> Int
-indexFromRowCol (Gen { width }) { row, col } =
-    row * width + col
+getCellState : Row -> Column -> Gen -> CellState
+getCellState row col (Gen array) =
+    array |> Array2D.get row col |> Maybe.withDefault Dead
 
 
-posFromIndex : Gen -> Int -> Pos
-posFromIndex (Gen { width }) index =
-    { row = index // width, col = index |> modBy width }
+setCellState : Row -> Column -> CellState -> Gen -> Gen
+setCellState row col state (Gen array) =
+    array |> Array2D.set row col state |> Gen
 
 
-gridGet : Gen -> Pos -> CellState
-gridGet ((Gen { grid }) as gen) pos =
+toggleCellState : Row -> Column -> Gen -> Gen
+toggleCellState row col gen =
     let
-        index =
-            indexFromRowCol gen pos
+        newState =
+            gen |> getCellState row col |> flipCellState
     in
-    grid |> Array.get index |> Maybe.withDefault Dead
-
-
-gridSet : Gen -> Pos -> CellState -> Gen
-gridSet ((Gen ({ grid } as innerGen)) as gen) pos state =
-    let
-        index =
-            indexFromRowCol gen pos
-
-        newGrid =
-            grid |> Array.set index state
-    in
-    { innerGen | grid = newGrid } |> Gen
-
-
-toggleCellState : Gen -> Pos -> Gen
-toggleCellState gen pos =
-    gridGet gen pos
-        |> flipCellState
-        |> gridSet gen pos
+    gen |> setCellState row col newState
 
 
 flipCellState : CellState -> CellState
@@ -97,6 +65,12 @@ flipCellState state =
 
     else
         Dead
+
+
+
+{--
+
+
 
 
 mapRows : (Row -> a) -> Gen -> List a
@@ -192,12 +166,4 @@ calculateCellNewState : Gen -> Pos -> CellState
 calculateCellNewState gen =
     cellAliveNeighborsInfo gen >> stateFromNeighborsInfo
 
-
-
--- map : (Pos -> CellState) -> Gen -> Gen
--- map f ((Gen { grid }) as gen) =
---     let
---         bla i _ =
---             posFromIndex gen i
---     in
---     grid |> Array.indexedMap (bla >> calculateCellNewState gen)
+--}
