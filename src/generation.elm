@@ -1,4 +1,4 @@
-module Generation exposing (Column, Gen, Height, Row, Width, getDimensions, init)
+module Generation exposing (CellState(..), Column, Gen, Height, Row, Width, flatten, getDimensions, nextGen, repeat)
 
 import Array exposing (Array)
 import Array2D exposing (Array2D)
@@ -29,9 +29,9 @@ type Gen
     = Gen (Array2D CellState)
 
 
-init : Height -> Width -> Gen
-init height width =
-    Array2D.repeat height width Dead |> Gen
+repeat : Height -> Width -> CellState -> Gen
+repeat height width state =
+    Array2D.repeat height width state |> Gen
 
 
 getDimensions : Gen -> ( Height, Width )
@@ -67,24 +67,17 @@ flipCellState state =
         Dead
 
 
+countAliveCells : List CellState -> Int
+countAliveCells =
+    let
+        accumulateAlive state acc =
+            if state == Alive then
+                acc + 1
 
-{--
-
-
-
-
-mapRows : (Row -> a) -> Gen -> List a
-mapRows f (Gen { height }) =
-    List.range 0 (height - 1)
-        |> List.map f
-
-
-mapRowCells : Row -> (CellState -> a) -> Gen -> List a
-mapRowCells row f (Gen { width, grid }) =
-    grid
-        |> Array.slice (row * width) width
-        |> Array.toList
-        |> List.map f
+            else
+                acc
+    in
+    List.foldl accumulateAlive 0
 
 
 cartesian : List a -> List b -> List ( a, b )
@@ -94,76 +87,64 @@ cartesian xs ys =
         xs
 
 
-possibleCellNeighbors : Pos -> List Pos
-possibleCellNeighbors pos =
-    let
-        deltaPos =
-            cartesian [ -1, 0, 1 ] [ -1, 0, 1 ]
-    in
-    deltaPos
+cellNeighbors : Row -> Column -> List ( Row, Column )
+cellNeighbors row col =
+    cartesian [ -1, 0, 1 ] [ -1, 0, 1 ]
         |> List.filter ((/=) ( 0, 0 ))
-        |> List.map (\( deltaX, deltaY ) -> { row = pos.row + deltaY, col = pos.col + deltaX })
+        |> List.map (\( deltaRow, deltaCol ) -> ( row + deltaRow, col + deltaCol ))
 
 
-isValidPos : Gen -> Pos -> Bool
-isValidPos (Gen { width, height }) pos =
-    pos.row >= 0 && pos.row < height && pos.col >= 0 && pos.col < width
+cellNeighborsStates : Row -> Column -> Gen -> List CellState
+cellNeighborsStates row col gen =
+    cellNeighbors row col |> List.map (\( r, c ) -> getCellState r c gen)
 
 
-filterPos : Gen -> List Pos -> List Pos
-filterPos gen =
-    List.filter (isValidPos gen)
-
-
-flip : (a -> b -> c) -> b -> a -> c
-flip f a b =
-    f b a
-
-
-validCellNeighbors : Pos -> Gen -> List Pos
-validCellNeighbors =
-    possibleCellNeighbors >> flip filterPos
+getCellNewState : Gen -> Row -> Column -> CellState -> CellState
+getCellNewState gen row col currentState =
+    cellNeighborsStates row col gen
+        |> countAliveCells
+        |> calculateNewState currentState
 
 
 type alias AliveNeighbors =
     Int
 
 
-aliveNeighbors : Gen -> Pos -> AliveNeighbors
-aliveNeighbors gen pos =
-    validCellNeighbors pos gen
-        |> List.map (gridGet gen)
-        |> List.filter ((==) Alive)
-        |> List.length
+calculateNewState : CellState -> AliveNeighbors -> CellState
+calculateNewState currentstate aliveNeighbors =
+    case ( currentstate, aliveNeighbors ) of
+        ( Dead, 3 ) ->
+            Alive
 
-
-cellAliveNeighborsInfo : Gen -> Pos -> ( CellState, AliveNeighbors )
-cellAliveNeighborsInfo gen pos =
-    let
-        cellState =
-            gridGet gen pos
-    in
-    ( cellState, aliveNeighbors gen pos )
-
-
-stateFromNeighborsInfo : ( CellState, AliveNeighbors ) -> CellState
-stateFromNeighborsInfo neighborsInfo =
-    case neighborsInfo of
         ( Alive, 2 ) ->
             Alive
 
         ( Alive, 3 ) ->
             Alive
 
-        ( Dead, 3 ) ->
-            Alive
-
         _ ->
             Dead
 
 
-calculateCellNewState : Gen -> Pos -> CellState
-calculateCellNewState gen =
-    cellAliveNeighborsInfo gen >> stateFromNeighborsInfo
+nextGen : Gen -> Gen
+nextGen ((Gen array) as gen) =
+    array
+        |> Array2D.indexedMap (getCellNewState gen)
+        |> Gen
 
---}
+
+flatten : (Row -> Column -> CellState -> a) -> Gen -> List a
+flatten f (Gen array) =
+    let
+        rows =
+            array |> Array2D.rows
+
+        mapRow row =
+            array
+                |> Array2D.getRow row
+                |> Maybe.withDefault Array.empty
+                |> Array.indexedMap (\col state -> f row col state)
+                |> Array.toList
+    in
+    List.range 0 (rows - 1)
+        |> List.concatMap mapRow
