@@ -1,4 +1,4 @@
-module Generation exposing (CellState(..), Column, Gen, Height, Row, Width, flatten, getDimensions, nextGen, repeat)
+module Generation exposing (CellState(..), Column, Gen, Height, Row, Width, flatten, getDimensions, mapRowCells, mapRows, nextGen, repeat)
 
 import Array exposing (Array)
 import Array2D exposing (Array2D)
@@ -133,18 +133,32 @@ nextGen ((Gen array) as gen) =
         |> Gen
 
 
-flatten : (Row -> Column -> CellState -> a) -> Gen -> List a
-flatten f (Gen array) =
+{-| Put some comments here!
+
+    gen |> mapRows fnProducingValues
+
+-}
+mapRows : (Row -> a) -> Gen -> List a
+mapRows f (Gen array) =
     let
         rows =
             array |> Array2D.rows
-
-        mapRow row =
-            array
-                |> Array2D.getRow row
-                |> Maybe.withDefault Array.empty
-                |> Array.indexedMap (\col state -> f row col state)
-                |> Array.toList
     in
     List.range 0 (rows - 1)
-        |> List.concatMap mapRow
+        |> List.map f
+
+
+mapRowCells : (Row -> Column -> CellState -> a) -> Row -> Gen -> List a
+mapRowCells f row (Gen array) =
+    array
+        |> Array2D.getRow row
+        |> Maybe.withDefault Array.empty
+        |> Array.indexedMap (f row)
+        |> Array.toList
+
+
+flatten : (Row -> Column -> CellState -> a) -> Gen -> List a
+flatten f gen =
+    gen
+        |> mapRows (mapRowCells f)
+        |> List.concatMap ((|>) gen)

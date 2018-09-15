@@ -16,7 +16,7 @@ type GameState
 main =
     let
         initState =
-            Initial (Generation.repeat 1 5 Generation.Dead)
+            Initial (Generation.repeat 8 8 Generation.Dead)
     in
     Browser.sandbox { init = initState, update = update, view = view >> toUnstyled }
 
@@ -26,21 +26,65 @@ update _ model =
 
 
 view model =
-    let
-        mystyle =
-            css
-                [ display block
-                , margin auto
-                , width (pct 40)
-                ]
-    in
     case model of
         Initial gen ->
             div []
                 [ h1 [ css [ property "text-align" "center" ] ] [ text "Game of LIFE" ]
-                , div [ mystyle ] (Generation.flatten viewCell gen)
-                , div [ mystyle ] (Generation.flatten viewCell gen)
+                , viewGrid gen
                 ]
+
+
+viewGrid : Gen -> Html msg
+viewGrid gen =
+    Html.Styled.table
+        [ css
+            [ width (pct 80)
+            , margin auto
+            ]
+        ]
+        (gen
+            |> Generation.mapRows (createRow gen)
+        )
+
+
+createRow : Gen -> Row -> Html msg
+createRow gen row =
+    tr [] (createCells gen row)
+
+
+createCells : Gen -> Row -> List (Html msg)
+createCells gen row =
+    Generation.mapRowCells (createCell gen) row gen
+
+
+createCell : Gen -> Row -> Column -> CellState -> Html msg
+createCell gen _ _ state =
+    let
+        ( _, gWidth ) =
+            Generation.getDimensions gen
+
+        widthRatio =
+            pct (100.0 / toFloat gWidth)
+    in
+    td
+        [ css
+            [ width widthRatio
+            , paddingBottom widthRatio
+            , position relative
+            , colorFromState state |> backgroundColor
+            ]
+        ]
+        []
+
+
+colorFromState : CellState -> Color
+colorFromState state =
+    case state of
+        Dead ->
+            rgb 100 80 80
+
+        Alive ->
+            rgb 200 150 0
 
 
 viewCell : Row -> Column -> CellState -> Html msg
@@ -68,14 +112,4 @@ cellColorFromState state =
             rgb 0 0 0
 
         Dead ->
-            rgb 255 255 255
-
-
-stringifyState : CellState -> String
-stringifyState s =
-    case s of
-        Alive ->
-            "Alive"
-
-        Dead ->
-            "Dead"
+            rgb 0 255 255
