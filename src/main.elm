@@ -10,31 +10,40 @@ import Html.Styled.Events exposing (onClick)
 
 
 type GameState
-    = Initial Gen
+    = Edition Gen
+
+
+type Msg
+    = ToggleCell Row Column
 
 
 main =
     let
         initState =
-            Initial (Generation.repeat 8 8 Generation.Dead)
+            Edition (Generation.repeat 8 8 Generation.Dead)
     in
     Browser.sandbox { init = initState, update = update, view = view >> toUnstyled }
 
 
-update _ model =
-    model
+update : Msg -> GameState -> GameState
+update msg model =
+    case msg of
+        ToggleCell row col ->
+            case model of
+                Edition gen ->
+                    Edition (Generation.toggleCellState row col gen)
 
 
 view model =
     case model of
-        Initial gen ->
+        Edition gen ->
             div []
                 [ h1 [ css [ property "text-align" "center" ] ] [ text "Game of LIFE" ]
                 , viewGrid gen
                 ]
 
 
-viewGrid : Gen -> Html msg
+viewGrid : Gen -> Html Msg
 viewGrid gen =
     Html.Styled.table
         [ css
@@ -47,18 +56,18 @@ viewGrid gen =
         )
 
 
-createRow : Gen -> Row -> Html msg
+createRow : Gen -> Row -> Html Msg
 createRow gen row =
     tr [] (createCells gen row)
 
 
-createCells : Gen -> Row -> List (Html msg)
+createCells : Gen -> Row -> List (Html Msg)
 createCells gen row =
     Generation.mapRowCells (createCell gen) row gen
 
 
-createCell : Gen -> Row -> Column -> CellState -> Html msg
-createCell gen _ _ state =
+createCell : Gen -> Row -> Column -> CellState -> Html Msg
+createCell gen row col state =
     let
         ( _, gWidth ) =
             Generation.getDimensions gen
@@ -73,6 +82,7 @@ createCell gen _ _ state =
             , position relative
             , colorFromState state |> backgroundColor
             ]
+        , onClick (ToggleCell row col)
         ]
         []
 
@@ -85,31 +95,3 @@ colorFromState state =
 
         Alive ->
             rgb 200 150 0
-
-
-viewCell : Row -> Column -> CellState -> Html msg
-viewCell _ _ state =
-    let
-        mystyle =
-            css
-                [ display inlineBlock
-
-                --, padding (px 5)
-                , border3 (px 2) solid (rgb 120 120 120)
-                , borderRadius (px 10)
-                , width (px 100)
-                , height (px 100)
-                , backgroundColor (cellColorFromState state)
-                ]
-    in
-    div [ mystyle ] []
-
-
-cellColorFromState : CellState -> Color
-cellColorFromState state =
-    case state of
-        Alive ->
-            rgb 0 0 0
-
-        Dead ->
-            rgb 0 255 255

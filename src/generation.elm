@@ -1,4 +1,4 @@
-module Generation exposing (CellState(..), Column, Gen, Height, Row, Width, flatten, getDimensions, mapRowCells, mapRows, nextGen, repeat)
+module Generation exposing (CellState(..), Column, Gen, Height, Row, Width, flatten, getDimensions, mapRowCells, mapRows, nextGen, repeat, toggleCellState)
 
 import Array exposing (Array)
 import Array2D exposing (Array2D)
@@ -162,3 +162,8 @@ flatten f gen =
     gen
         |> mapRows (mapRowCells f)
         |> List.concatMap ((|>) gen)
+
+
+foldl : (CellState -> a -> a) -> a -> Gen -> a
+foldl f init =
+    flatten (\_ _ -> identity) >> List.foldl f init
