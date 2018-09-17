@@ -4613,13 +4613,168 @@ var author$project$Generation$repeat = F3(
 		return author$project$Generation$Gen(
 			A3(tortus$elm_array_2d$Array2D$repeat, height, width, state));
 	});
-var author$project$Main$Edition = function (a) {
-	return {$: 'Edition', a: a};
-};
 var author$project$Generation$Alive = {$: 'Alive'};
-var author$project$Generation$flipCellState = function (state) {
-	return _Utils_eq(state, author$project$Generation$Dead) ? author$project$Generation$Alive : author$project$Generation$Dead;
+var author$project$Generation$calculateNewState = F2(
+	function (currentstate, aliveNeighbors) {
+		var _n0 = _Utils_Tuple2(currentstate, aliveNeighbors);
+		_n0$3:
+		while (true) {
+			if (_n0.a.$ === 'Dead') {
+				if (_n0.b === 3) {
+					var _n1 = _n0.a;
+					return author$project$Generation$Alive;
+				} else {
+					break _n0$3;
+				}
+			} else {
+				switch (_n0.b) {
+					case 2:
+						var _n2 = _n0.a;
+						return author$project$Generation$Alive;
+					case 3:
+						var _n3 = _n0.a;
+						return author$project$Generation$Alive;
+					default:
+						break _n0$3;
+				}
+			}
+		}
+		return author$project$Generation$Dead;
+	});
+var elm$core$List$foldrHelper = F4(
+	function (fn, acc, ctr, ls) {
+		if (!ls.b) {
+			return acc;
+		} else {
+			var a = ls.a;
+			var r1 = ls.b;
+			if (!r1.b) {
+				return A2(fn, a, acc);
+			} else {
+				var b = r1.a;
+				var r2 = r1.b;
+				if (!r2.b) {
+					return A2(
+						fn,
+						a,
+						A2(fn, b, acc));
+				} else {
+					var c = r2.a;
+					var r3 = r2.b;
+					if (!r3.b) {
+						return A2(
+							fn,
+							a,
+							A2(
+								fn,
+								b,
+								A2(fn, c, acc)));
+					} else {
+						var d = r3.a;
+						var r4 = r3.b;
+						var res = (ctr > 500) ? A3(
+							elm$core$List$foldl,
+							fn,
+							acc,
+							elm$core$List$reverse(r4)) : A4(elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
+						return A2(
+							fn,
+							a,
+							A2(
+								fn,
+								b,
+								A2(
+									fn,
+									c,
+									A2(fn, d, res))));
+					}
+				}
+			}
+		}
+	});
+var elm$core$List$foldr = F3(
+	function (fn, acc, ls) {
+		return A4(elm$core$List$foldrHelper, fn, acc, 0, ls);
+	});
+var elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3(elm$core$List$foldr, elm$core$List$cons, ys, xs);
+		}
+	});
+var elm$core$List$concat = function (lists) {
+	return A3(elm$core$List$foldr, elm$core$List$append, _List_Nil, lists);
 };
+var elm$core$List$map = F2(
+	function (f, xs) {
+		return A3(
+			elm$core$List$foldr,
+			F2(
+				function (x, acc) {
+					return A2(
+						elm$core$List$cons,
+						f(x),
+						acc);
+				}),
+			_List_Nil,
+			xs);
+	});
+var elm$core$List$concatMap = F2(
+	function (f, list) {
+		return elm$core$List$concat(
+			A2(elm$core$List$map, f, list));
+	});
+var author$project$Generation$cartesian = F2(
+	function (xs, ys) {
+		return A2(
+			elm$core$List$concatMap,
+			function (x) {
+				return A2(
+					elm$core$List$map,
+					function (y) {
+						return _Utils_Tuple2(x, y);
+					},
+					ys);
+			},
+			xs);
+	});
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var elm$core$Basics$neq = _Utils_notEqual;
+var elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var author$project$Generation$cellNeighbors = F2(
+	function (row, col) {
+		return A2(
+			elm$core$List$map,
+			function (_n0) {
+				var deltaRow = _n0.a;
+				var deltaCol = _n0.b;
+				return _Utils_Tuple2(row + deltaRow, col + deltaCol);
+			},
+			A2(
+				elm$core$List$filter,
+				elm$core$Basics$neq(
+					_Utils_Tuple2(0, 0)),
+				A2(
+					author$project$Generation$cartesian,
+					_List_fromArray(
+						[-1, 0, 1]),
+					_List_fromArray(
+						[-1, 0, 1]))));
+	});
 var elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
 		if (maybe.$ === 'Just') {
@@ -4704,6 +4859,99 @@ var author$project$Generation$getCellState = F3(
 			author$project$Generation$Dead,
 			A3(tortus$elm_array_2d$Array2D$get, row, col, array));
 	});
+var author$project$Generation$cellNeighborsStates = F3(
+	function (row, col, gen) {
+		return A2(
+			elm$core$List$map,
+			function (_n0) {
+				var r = _n0.a;
+				var c = _n0.b;
+				return A3(author$project$Generation$getCellState, r, c, gen);
+			},
+			A2(author$project$Generation$cellNeighbors, row, col));
+	});
+var author$project$Generation$countAliveCells = function () {
+	var accumulateAlive = F2(
+		function (state, acc) {
+			return _Utils_eq(state, author$project$Generation$Alive) ? (acc + 1) : acc;
+		});
+	return A2(elm$core$List$foldl, accumulateAlive, 0);
+}();
+var author$project$Generation$getCellNewState = F4(
+	function (gen, row, col, currentState) {
+		return A2(
+			author$project$Generation$calculateNewState,
+			currentState,
+			author$project$Generation$countAliveCells(
+				A3(author$project$Generation$cellNeighborsStates, row, col, gen)));
+	});
+var elm$core$Basics$True = {$: 'True'};
+var elm$core$Elm$JsArray$foldl = _JsArray_foldl;
+var elm$core$Elm$JsArray$indexedMap = _JsArray_indexedMap;
+var elm$core$Array$indexedMap = F2(
+	function (func, _n0) {
+		var len = _n0.a;
+		var tree = _n0.c;
+		var tail = _n0.d;
+		var initialBuilder = {
+			nodeList: _List_Nil,
+			nodeListSize: 0,
+			tail: A3(
+				elm$core$Elm$JsArray$indexedMap,
+				func,
+				elm$core$Array$tailIndex(len),
+				tail)
+		};
+		var helper = F2(
+			function (node, builder) {
+				if (node.$ === 'SubTree') {
+					var subTree = node.a;
+					return A3(elm$core$Elm$JsArray$foldl, helper, builder, subTree);
+				} else {
+					var leaf = node.a;
+					var offset = builder.nodeListSize * elm$core$Array$branchFactor;
+					var mappedLeaf = elm$core$Array$Leaf(
+						A3(elm$core$Elm$JsArray$indexedMap, func, offset, leaf));
+					return {
+						nodeList: A2(elm$core$List$cons, mappedLeaf, builder.nodeList),
+						nodeListSize: builder.nodeListSize + 1,
+						tail: builder.tail
+					};
+				}
+			});
+		return A2(
+			elm$core$Array$builderToArray,
+			true,
+			A3(elm$core$Elm$JsArray$foldl, helper, initialBuilder, tree));
+	});
+var tortus$elm_array_2d$Array2D$indexedMap = F2(
+	function (func, array2d) {
+		var mappedData = A2(
+			elm$core$Array$indexedMap,
+			F2(
+				function (row, rowAry) {
+					return A2(
+						elm$core$Array$indexedMap,
+						F2(
+							function (col, value) {
+								return A3(func, row, col, value);
+							}),
+						rowAry);
+				}),
+			array2d.data);
+		return {columns: array2d.columns, data: mappedData};
+	});
+var author$project$Generation$nextGen = function (gen) {
+	var array = gen.a;
+	return author$project$Generation$Gen(
+		A2(
+			tortus$elm_array_2d$Array2D$indexedMap,
+			author$project$Generation$getCellNewState(gen),
+			array));
+};
+var author$project$Generation$flipCellState = function (state) {
+	return _Utils_eq(state, author$project$Generation$Dead) ? author$project$Generation$Alive : author$project$Generation$Dead;
+};
 var elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
 var elm$core$Array$setHelp = F4(
 	function (shift, index, value, tree) {
@@ -4790,82 +5038,16 @@ var author$project$Generation$toggleCellState = F3(
 		return A4(author$project$Generation$setCellState, row, col, newState, gen);
 	});
 var author$project$Main$update = F2(
-	function (msg, model) {
-		var row = msg.a;
-		var col = msg.b;
-		var gen = model.a;
-		return author$project$Main$Edition(
-			A3(author$project$Generation$toggleCellState, row, col, gen));
-	});
-var elm$core$List$foldrHelper = F4(
-	function (fn, acc, ctr, ls) {
-		if (!ls.b) {
-			return acc;
+	function (msg, gen) {
+		if (msg.$ === 'ToggleCell') {
+			var row = msg.a;
+			var col = msg.b;
+			return A3(author$project$Generation$toggleCellState, row, col, gen);
 		} else {
-			var a = ls.a;
-			var r1 = ls.b;
-			if (!r1.b) {
-				return A2(fn, a, acc);
-			} else {
-				var b = r1.a;
-				var r2 = r1.b;
-				if (!r2.b) {
-					return A2(
-						fn,
-						a,
-						A2(fn, b, acc));
-				} else {
-					var c = r2.a;
-					var r3 = r2.b;
-					if (!r3.b) {
-						return A2(
-							fn,
-							a,
-							A2(
-								fn,
-								b,
-								A2(fn, c, acc)));
-					} else {
-						var d = r3.a;
-						var r4 = r3.b;
-						var res = (ctr > 500) ? A3(
-							elm$core$List$foldl,
-							fn,
-							acc,
-							elm$core$List$reverse(r4)) : A4(elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
-						return A2(
-							fn,
-							a,
-							A2(
-								fn,
-								b,
-								A2(
-									fn,
-									c,
-									A2(fn, d, res))));
-					}
-				}
-			}
+			return author$project$Generation$nextGen(gen);
 		}
 	});
-var elm$core$List$foldr = F3(
-	function (fn, acc, ls) {
-		return A4(elm$core$List$foldrHelper, fn, acc, 0, ls);
-	});
-var elm$core$List$map = F2(
-	function (f, xs) {
-		return A3(
-			elm$core$List$foldr,
-			F2(
-				function (x, acc) {
-					return A2(
-						elm$core$List$cons,
-						f(x),
-						acc);
-				}),
-			_List_Nil,
-			xs);
-	});
+var author$project$Main$NextGeneration = {$: 'NextGeneration'};
 var elm$core$List$rangeHelp = F3(
 	function (lo, hi, list) {
 		rangeHelp:
@@ -4902,45 +5084,6 @@ var author$project$Generation$mapRows = F2(
 			elm$core$List$map,
 			f,
 			A2(elm$core$List$range, 0, rows - 1));
-	});
-var elm$core$Basics$True = {$: 'True'};
-var elm$core$Elm$JsArray$foldl = _JsArray_foldl;
-var elm$core$Elm$JsArray$indexedMap = _JsArray_indexedMap;
-var elm$core$Array$indexedMap = F2(
-	function (func, _n0) {
-		var len = _n0.a;
-		var tree = _n0.c;
-		var tail = _n0.d;
-		var initialBuilder = {
-			nodeList: _List_Nil,
-			nodeListSize: 0,
-			tail: A3(
-				elm$core$Elm$JsArray$indexedMap,
-				func,
-				elm$core$Array$tailIndex(len),
-				tail)
-		};
-		var helper = F2(
-			function (node, builder) {
-				if (node.$ === 'SubTree') {
-					var subTree = node.a;
-					return A3(elm$core$Elm$JsArray$foldl, helper, builder, subTree);
-				} else {
-					var leaf = node.a;
-					var offset = builder.nodeListSize * elm$core$Array$branchFactor;
-					var mappedLeaf = elm$core$Array$Leaf(
-						A3(elm$core$Elm$JsArray$indexedMap, func, offset, leaf));
-					return {
-						nodeList: A2(elm$core$List$cons, mappedLeaf, builder.nodeList),
-						nodeListSize: builder.nodeListSize + 1,
-						tail: builder.tail
-					};
-				}
-			});
-		return A2(
-			elm$core$Array$builderToArray,
-			true,
-			A3(elm$core$Elm$JsArray$foldl, helper, initialBuilder, tree));
 	});
 var author$project$Generation$mapRowCells = F3(
 	function (f, row, _n0) {
@@ -5287,7 +5430,6 @@ var Skinney$murmur3$Murmur3$mix = F2(
 		var k1 = A2(Skinney$murmur3$Murmur3$mur, 3432918353, h2);
 		return h1 ^ A2(Skinney$murmur3$Murmur3$mur, 461845907, (k1 >>> 17) | (k1 << 15));
 	});
-var elm$core$Basics$neq = _Utils_notEqual;
 var Skinney$murmur3$Murmur3$finalize = function (data) {
 	var acc = data.hash ? A2(Skinney$murmur3$Murmur3$mix, data.seed, data.hash) : data.seed;
 	var h1 = acc ^ data.charsProcessed;
@@ -5392,22 +5534,6 @@ var elm$core$String$cons = _String_cons;
 var rtfeldman$elm_css$Css$Preprocess$stylesheet = function (snippets) {
 	return {charset: elm$core$Maybe$Nothing, imports: _List_Nil, namespaces: _List_Nil, snippets: snippets};
 };
-var elm$core$List$append = F2(
-	function (xs, ys) {
-		if (!ys.b) {
-			return xs;
-		} else {
-			return A3(elm$core$List$foldr, elm$core$List$cons, ys, xs);
-		}
-	});
-var elm$core$List$concat = function (lists) {
-	return A3(elm$core$List$foldr, elm$core$List$append, _List_Nil, lists);
-};
-var elm$core$List$concatMap = F2(
-	function (f, list) {
-		return elm$core$List$concat(
-			A2(elm$core$List$map, f, list));
-	});
 var rtfeldman$elm_css$Css$Preprocess$unwrapSnippet = function (_n0) {
 	var declarations = _n0.a;
 	return declarations;
@@ -6092,9 +6218,6 @@ var rtfeldman$elm_css$Css$Structure$styleBlockToMediaRule = F2(
 		}
 	});
 var rtfeldman$elm_css$Hash$murmurSeed = 15739;
-var elm$core$Basics$negate = function (n) {
-	return -n;
-};
 var elm$core$String$fromList = _String_fromList;
 var elm$core$Basics$modBy = _Basics_modBy;
 var rtfeldman$elm_hex$Hex$unsafeToDigit = function (num) {
@@ -6788,17 +6911,6 @@ var rtfeldman$elm_css$Css$Structure$compactStylesheet = function (_n0) {
 	var finalDeclarations = A2(rtfeldman$elm_css$Css$Structure$withKeyframeDeclarations, keyframesByName, compactedDeclarations);
 	return {charset: charset, declarations: finalDeclarations, imports: imports, namespaces: namespaces};
 };
-var elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
 var rtfeldman$elm_css$Css$Structure$Output$charsetToString = function (charset) {
 	return A2(
 		elm$core$Maybe$withDefault,
@@ -7222,6 +7334,8 @@ var author$project$Main$createRow = F2(
 	});
 var rtfeldman$elm_css$Css$auto = {alignItemsOrAuto: rtfeldman$elm_css$Css$Structure$Compatible, cursor: rtfeldman$elm_css$Css$Structure$Compatible, flexBasis: rtfeldman$elm_css$Css$Structure$Compatible, intOrAuto: rtfeldman$elm_css$Css$Structure$Compatible, justifyContentOrAuto: rtfeldman$elm_css$Css$Structure$Compatible, lengthOrAuto: rtfeldman$elm_css$Css$Structure$Compatible, lengthOrAutoOrCoverOrContain: rtfeldman$elm_css$Css$Structure$Compatible, lengthOrNumberOrAutoOrNoneOrContent: rtfeldman$elm_css$Css$Structure$Compatible, overflow: rtfeldman$elm_css$Css$Structure$Compatible, pointerEvents: rtfeldman$elm_css$Css$Structure$Compatible, tableLayout: rtfeldman$elm_css$Css$Structure$Compatible, textRendering: rtfeldman$elm_css$Css$Structure$Compatible, touchAction: rtfeldman$elm_css$Css$Structure$Compatible, value: 'auto'};
 var rtfeldman$elm_css$Css$margin = rtfeldman$elm_css$Css$prop1('margin');
+var rtfeldman$elm_css$Css$PxUnits = {$: 'PxUnits'};
+var rtfeldman$elm_css$Css$px = A2(rtfeldman$elm_css$Css$Internal$lengthConverter, rtfeldman$elm_css$Css$PxUnits, 'px');
 var rtfeldman$elm_css$Html$Styled$table = rtfeldman$elm_css$Html$Styled$node('table');
 var author$project$Main$viewGrid = function (gen) {
 	return A2(
@@ -7232,7 +7346,7 @@ var author$project$Main$viewGrid = function (gen) {
 				_List_fromArray(
 					[
 						rtfeldman$elm_css$Css$width(
-						rtfeldman$elm_css$Css$pct(80)),
+						rtfeldman$elm_css$Css$px(500)),
 						rtfeldman$elm_css$Css$margin(rtfeldman$elm_css$Css$auto)
 					]))
 			]),
@@ -7241,6 +7355,8 @@ var author$project$Main$viewGrid = function (gen) {
 			author$project$Main$createRow(gen),
 			gen));
 };
+var rtfeldman$elm_css$Css$height = rtfeldman$elm_css$Css$prop1('height');
+var rtfeldman$elm_css$Html$Styled$button = rtfeldman$elm_css$Html$Styled$node('button');
 var rtfeldman$elm_css$Html$Styled$div = rtfeldman$elm_css$Html$Styled$node('div');
 var rtfeldman$elm_css$Html$Styled$h1 = rtfeldman$elm_css$Html$Styled$node('h1');
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
@@ -7252,26 +7368,57 @@ var rtfeldman$elm_css$VirtualDom$Styled$text = function (str) {
 		elm$virtual_dom$VirtualDom$text(str));
 };
 var rtfeldman$elm_css$Html$Styled$text = rtfeldman$elm_css$VirtualDom$Styled$text;
-var author$project$Main$view = function (model) {
-	var gen = model.a;
+var elm$json$Json$Encode$bool = _Json_wrap;
+var rtfeldman$elm_css$VirtualDom$Styled$property = F2(
+	function (key, value) {
+		return A3(
+			rtfeldman$elm_css$VirtualDom$Styled$Attribute,
+			A2(elm$virtual_dom$VirtualDom$property, key, value),
+			_List_Nil,
+			'');
+	});
+var rtfeldman$elm_css$Html$Styled$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			rtfeldman$elm_css$VirtualDom$Styled$property,
+			key,
+			elm$json$Json$Encode$bool(bool));
+	});
+var rtfeldman$elm_css$Html$Styled$Attributes$disabled = rtfeldman$elm_css$Html$Styled$Attributes$boolProperty('disabled');
+var author$project$Main$view = function (gen) {
 	return A2(
 		rtfeldman$elm_css$Html$Styled$div,
-		_List_Nil,
+		_List_fromArray(
+			[
+				rtfeldman$elm_css$Html$Styled$Attributes$css(
+				_List_fromArray(
+					[
+						A2(rtfeldman$elm_css$Css$property, 'text-align', 'center'),
+						rtfeldman$elm_css$Css$height(
+						rtfeldman$elm_css$Css$pct(100)),
+						rtfeldman$elm_css$Css$margin(
+						rtfeldman$elm_css$Css$px(0))
+					]))
+			]),
 		_List_fromArray(
 			[
 				A2(
 				rtfeldman$elm_css$Html$Styled$h1,
-				_List_fromArray(
-					[
-						rtfeldman$elm_css$Html$Styled$Attributes$css(
-						_List_fromArray(
-							[
-								A2(rtfeldman$elm_css$Css$property, 'text-align', 'center')
-							]))
-					]),
+				_List_Nil,
 				_List_fromArray(
 					[
 						rtfeldman$elm_css$Html$Styled$text('Game of LIFE')
+					])),
+				A2(
+				rtfeldman$elm_css$Html$Styled$button,
+				_List_fromArray(
+					[
+						rtfeldman$elm_css$Html$Styled$Events$onClick(author$project$Main$NextGeneration),
+						rtfeldman$elm_css$Html$Styled$Attributes$disabled(true)
+					]),
+				_List_fromArray(
+					[
+						rtfeldman$elm_css$Html$Styled$text('Next Generation')
 					])),
 				author$project$Main$viewGrid(gen)
 			]));
@@ -8008,8 +8155,7 @@ var rtfeldman$elm_css$VirtualDom$Styled$toUnstyled = function (vdom) {
 };
 var rtfeldman$elm_css$Html$Styled$toUnstyled = rtfeldman$elm_css$VirtualDom$Styled$toUnstyled;
 var author$project$Main$main = function () {
-	var initState = author$project$Main$Edition(
-		A3(author$project$Generation$repeat, 8, 8, author$project$Generation$Dead));
+	var initState = A3(author$project$Generation$repeat, 8, 8, author$project$Generation$Dead);
 	return elm$browser$Browser$sandbox(
 		{
 			init: initState,

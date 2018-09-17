@@ -5,7 +5,7 @@ import Css exposing (..)
 import Generation exposing (..)
 import Html
 import Html.Styled exposing (..)
-import Html.Styled.Attributes exposing (css, href, src)
+import Html.Styled.Attributes exposing (css, disabled, href, src)
 import Html.Styled.Events exposing (onClick)
 
 
@@ -35,7 +35,7 @@ update msg gen =
 view gen =
     div [ css [ property "text-align" "center", height (pct 100), margin (px 0) ] ]
         [ h1 [] [ text "Game of LIFE" ]
-        , button [ onClick NextGeneration ] [ text "Next Generation" ]
+        , button [ onClick NextGeneration, disabled True ] [ text "Next Generation" ]
         , viewGrid gen
         ]
 
