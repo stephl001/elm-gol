@@ -1,4 +1,4 @@
-module Generation exposing (CellState(..), Column, Gen, Height, Row, Width, flatten, getDimensions, mapRowCells, mapRows, nextGen, repeat, toggleCellState)
+module Generation exposing (CellState(..), Column, Gen, Height, Row, Width, flatten, foldl, getDimensions, mapRowCells, mapRows, nextGen, repeat, toggleCellState)
 
 import Array exposing (Array)
 import Array2D exposing (Array2D)

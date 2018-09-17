@@ -9,45 +9,47 @@ import Html.Styled.Attributes exposing (css, href, src)
 import Html.Styled.Events exposing (onClick)
 
 
-type GameState
-    = Edition Gen
-
-
 type Msg
     = ToggleCell Row Column
+    | NextGeneration
 
 
 main =
     let
         initState =
-            Edition (Generation.repeat 8 8 Generation.Dead)
+            Generation.repeat 8 8 Generation.Dead
     in
     Browser.sandbox { init = initState, update = update, view = view >> toUnstyled }
 
 
-update : Msg -> GameState -> GameState
-update msg model =
+update : Msg -> Gen -> Gen
+update msg gen =
     case msg of
         ToggleCell row col ->
-            case model of
-                Edition gen ->
-                    Edition (Generation.toggleCellState row col gen)
+            Generation.toggleCellState row col gen
+
+        NextGeneration ->
+            Generation.nextGen gen
 
 
-view model =
-    case model of
-        Edition gen ->
-            div []
-                [ h1 [ css [ property "text-align" "center" ] ] [ text "Game of LIFE" ]
-                , viewGrid gen
-                ]
+view gen =
+    div [ css [ property "text-align" "center", height (pct 100), margin (px 0) ] ]
+        [ h1 [] [ text "Game of LIFE" ]
+        , button [ onClick NextGeneration ] [ text "Next Generation" ]
+        , viewGrid gen
+        ]
+
+
+hasLivingCells : Gen -> Bool
+hasLivingCells =
+    Generation.foldl ((==) Alive >> (||)) False
 
 
 viewGrid : Gen -> Html Msg
 viewGrid gen =
     Html.Styled.table
         [ css
-            [ width (pct 80)
+            [ width (px 500)
             , margin auto
             ]
         ]
